@@ -6,7 +6,16 @@ Our aiming users are those retail investors in second-level circulation market. 
 1. Create a virtual machine which contains 2 cpus and 2G memory.
 + cd docker 
 + docker-machine create --driver virtualbox --virtualbox-cpu-count 2 --virtualbox-memory 2048 $(your-virtual-machine-name)
-+ ./local-setup.sh $(your-virtual-machine-name)
++ When you run this application for the first time you can use:
++   ./local-setup.sh $(your-virtual-machine-name) 
++ If you have already have docker images, you can use:
++   docker-machine start $(your-virtual-machine-name)
++ eval $(docker-machine env $(your-virtual-machine-name))
++ docker-machine env $(your-virtual-machine-name)
++ docker run -d -p 2181:2181 -p 2888:2888 -p 3888:3888 --name zookeeper confluent/zookeeper
++ docker run -d -p 9092:9092 -e KAFKA_ADVERTISED_HOST_NAME=`docker-machine ip $(your-virtual-machine-name)` -e KAFKA_ADVERTISED_PORT=9092 --name kafka --link zookeeper:zookeeper confluent/kafka
++ docker run -d -p 7199:7199 -p 9042:9042 -p 9160:9160 -p 7001:7001 --name cassandra cassandra:3.7
++ docker run -d -p 6379:6379 --name redis redis:alpine
 
 2. Create the python virtual env
 + Install python 2.7
@@ -16,6 +25,32 @@ Our aiming users are those retail investors in second-level circulation market. 
 + cd kafka_data_producer
 + pip install -r requirement.txt
 + python data-producer.py
+
+4. Run spark cluster
++ cd spark
++ pip install -r requirement.txt
++ spark-submit --jars spark-streaming-kafka-0-8-assembly_2.11-2.0.0.jar spark.py realtTime-StockAnalyzer prediction-stock-price 192.168.99.100:9092 "$(the date you want to predict)"
+
+5. Run redis cluster
++ cd redis
++ pip install -r requirement.txt
++ python redis_jhl.py prediction-stock-price 192.168.99.100:9092 prediction-stock-price 192.168.99.100 6379
+
+6. Run node.js server
++ cd node.js
++ npm install
++ node showResult.js --port=3000 --redis_host=192.168.99.100 --redis_port=6379 --subscribe_topic=prediction-stock-price
+
+7. Run cassandra
++ cd cassandra
++ pip install -r requirement.txt
++ python pykafka-cassandra.py 192.168.99.100:9092 stock-analyzer 192.168.99.100 stock stock_analyzer
+
+8. Open the google chrome
++ Go to "http://localhost:3000"
++ Subscribe the stock you want, such as "AAPL"
++ You can see the dynamic prices about the stock.
++ Click "result", and you can see the result we predict.
 
 ## Functionalities
 1. Grasp stock data every 10 second from google_finance
